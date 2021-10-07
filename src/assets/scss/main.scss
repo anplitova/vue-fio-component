@@ -1,0 +1,20 @@
+@import "./global/normalize";
+@import "./global/fonts";
+@import "./global/variables";
+@import "./global/mixins";
+@import "./global/utils";
+// buttons
+@import "./button";
+
+body {
+  font-family: $font;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 1.2;
+  // background-color: $main-bg;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
