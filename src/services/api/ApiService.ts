@@ -9,10 +9,7 @@ class ApiService {
   private readonly TOKEN: string ='43b7e62f8b5e35438a657ce267979f961dcb9670'
 
   /**
-   * Получение списка фамилий
-   *
-   * @param queryParams {string} - строка для поиска
-   * @returns
+   * @description Получение списка фамилий
    */
   public async getData (params: IDataParams): Promise<IDataResponse> {
     const options: RequestInit = {
