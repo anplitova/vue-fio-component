@@ -7,7 +7,6 @@
       type="text"
       :placeholder="placeholder"
       @input="handleInput"
-      @change="handleChange"
     >
     <button class="ui-search__clear" type="button" v-if="hasClearButton && modelValue.length > 0" @click="handlerClear">
       <cross-icon :color="'#9fc0f5'"/>
@@ -16,7 +15,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue'
+import { defineComponent } from 'vue'
 import CrossIcon from '@components/icons/CrossIcon.vue'
 
 export default defineComponent({
@@ -38,33 +37,24 @@ export default defineComponent({
       default: false
     }
   },
-  components: {CrossIcon },
+  components: { CrossIcon },
   emits: ['update:modelValue'],
   setup (props, ctx) {
-    const inputValue = ref(props.modelValue)
-
-    function handleChange (evt: any): void {
-      inputValue.value = evt.target.value.trim()
-      updateInput()
+    function handleInput (evt: Event): void {
+      const target: HTMLInputElement = evt.target as HTMLInputElement
+      updateInput(target.value.trim())
     }
 
-    function handleInput (evt: any): void {
-      inputValue.value = evt.target.value.trim()
-      updateInput()
+    function handlerClear (): void {
+      updateInput('')
     }
 
-    function handlerClear ():void {
-      inputValue.value = ''
-      updateInput()
-    }
-
-    function updateInput (): void {
-      ctx.emit('update:modelValue', inputValue.value)
+    function updateInput (str: string): void {
+      ctx.emit('update:modelValue', str)
     }
 
     return {
       handleInput,
-      handleChange,
       handlerClear,
       updateInput
     }

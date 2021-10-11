@@ -2,8 +2,8 @@
 <div class="fio-component">
   <div class="search">
     <div class="search__header">
-      <ui-search-input v-model="searchValue" :placeholder="'Поиск по фамилии'" :has-clear-button="true"/>
-      <button class="search__toggle button-outline button-outline--primary" type="button" @click="toggleFind">{{ findOn ? 'Выключить поиск' : 'Включить поиск' }}</button>
+        <ui-search-input v-model="searchValue" :placeholder="'Поиск по фамилии'" has-clear-button />
+        <button class="search__toggle button-outline button-outline--primary" type="button" @click="findOn = !findOn">
     </div>
     <div class="search__wrapper">
       <div class="loading" v-if="loading"></div>
@@ -25,7 +25,7 @@
     </div>
     <div class="select__wrapper">
       <ul class="suggestions" v-if="selectSuggestions.length > 0">
-        <li class="suggestions__item" v-for="item, index in selectSuggestions" :key="item.value">
+          <li class="suggestions__item" v-for="(item, index) in selectSuggestions" :key="item.value">
           <article class="suggestion">
             <h3 class="suggestion__value">{{ item.value }}</h3>
             <button class="suggestion__button button button--danger" @click="deleteSuggestion(index)">Удалить</button>
@@ -39,21 +39,12 @@
 </template>
 
 <script lang="ts">
-import {
-  defineComponent,
-  ref,
-  watch
-} from 'vue'
-import {
-  useStore
-} from 'vuex'
+import { computed, defineComponent, ref, watch } from 'vue'
+import { useStore } from 'vuex'
 import ApiService from '@api/ApiService'
 import UiSearchInput from '@components/UiSearchInput.vue'
-import {
-  IDataParams,
-  IDataResponse,
-  ISuggestion
-} from '@interfaces/services/api/ApiService.interface'
+import { ISuggestion } from '@interfaces/services/api/ApiService.interface'
+import { clearUniq, debounce } from '@utils/utils'
 
 export default defineComponent({
   components: {
@@ -61,67 +52,46 @@ export default defineComponent({
   },
   name: 'App',
   setup () {
-    const store = useStore()
-    const searchValue = ref('')
+    const { state, commit } = useStore()
+    const searchValue = ref<string>('')
     const loading = ref(false)
     const findOn = ref(true)
-    const suggestions = ref([])
-    const selectSuggestions = store.getters.suggestions
+    const suggestions = ref<ISuggestion[]>([])
+    const selectSuggestions = computed<ISuggestion[]>(() => state.suggestions)
 
-    watch(searchValue, () => {
-      getData()
-    })
-
-    function getData (): void {
-      if (searchValue.value.length > 2 && findOn.value) {
-        const params: IDataParams = {
-          query: searchValue.value,
+    function defaultGetData (query = ''): void {
+      loading.value = true
+      ApiService.getData({
+        query,
           count: 20
-        }
-        loading.value = true
-        ApiService.getData(params)
-          // TODO: тип
-          .then((response: any) => {
+      })
+        .then((response) => {
             suggestions.value = response.suggestions
           })
-          .catch((error) => console.error(error))
+        .catch(console.error)
           .finally(() => (loading.value = false))
       }
+
+    const getDataPipe = debounce(clearUniq(defaultGetData, ([a], [b]) => a !== b))
+    const getData = (query: string) => {
+      if (query.length > 2 && findOn.value) {
+        getDataPipe(query)
+    }
     }
 
-    function toggleFind (): void {
-      findOn.value = !findOn.value
-      getData()
-    }
-
-    function addSuggestion (item: ISuggestion): void {
-      store.dispatch('ADD', item)
-    }
-
-    function deleteSuggestion (index: number): void {
-      store.dispatch('DELETE', index)
-    }
-
-    function isSelectSuggestion (item: ISuggestion): boolean {
-      return selectSuggestions.includes(item)
-    }
-
-    function clearSelectSuggestions (): void {
-      store.dispatch('CLEAR', [])
-    }
+    watch(searchValue, (v) => getData(v))
+    watch(findOn, () => getData(searchValue.value))
 
     return {
       loading,
       searchValue,
-      getData,
       suggestions,
       findOn,
-      toggleFind,
       selectSuggestions,
-      addSuggestion,
-      deleteSuggestion,
-      isSelectSuggestion,
-      clearSelectSuggestions
+      addSuggestion: (item: ISuggestion) => commit('ADD_ITEM', item),
+      deleteSuggestion: (index: number) => commit('DELETE_ITEM', index),
+      isSelectSuggestion: (item: ISuggestion): boolean => selectSuggestions.value.includes(item),
+      clearSelectSuggestions: () => commit('CLEAR_LIST', [])
     }
   }
 })
